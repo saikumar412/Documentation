@@ -1,0 +1,30 @@
+Add-AzureAccount 
+Connect-AzureRmAccount 
+
+If you are unable to add azure account set unrestricted
+
+set-executionpolicy unrestricted 
+get-executionpolicy 
+ 
+Get-Module -Name PowerShellGet -ListAvailable | Select-Object -Property Name,Version,Path
+
+Install-Module PowerShellGet -Force
+
+Import-Module -Name AzureRM
+
+AZ-login
+
+https://microsoft.com/devicelogin
+
+
+Select-AzureRmSubscription -SubscriptionId DDDDDDDD-0011-4006-800D-6abcdefg01aC
+  Select-AzureRmSubscription : Run Connect-AzureRmAccount to login.
+	
+Connect-AzureRmAccount -SubscriptionId DDDDDDDD-0011-4006-800D-6abcdefg01aC
+
+
+Account          : myuser@github.onmicrosoft.com
+SubscriptionName : DDDDDDDD-0011-4006-800D-6abcdefg01aC
+SubscriptionId   : dddddddd-0011-4006-800d-6abcdefg01aC
+TenantId         : 0de5d7c9-1100-400d-9004-1abcdefgh234
+Environment      : AzureCloud
