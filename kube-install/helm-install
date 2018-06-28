@@ -1,6 +1,4 @@
 
-wget -o https://gitlab.cloudhelp.in/saiKumar.ekula/kubernetes_Deployment/tree/master
-
 mkdir helm
 cd helm
 curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
@@ -17,4 +15,3 @@ helm install --name my-nginx-controller stable/nginx-ingress
 helm insatall --name nodeapp1-helm ./nodeApp1_Helm
 
 helm delete my-nginx --purge
- 
