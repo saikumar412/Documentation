@@ -1,0 +1,19 @@
+Download Docker Toolbox
+https://docs.docker.com/toolbox/toolbox_install_windows/
+
+Set up Path for docker-machine.exe
+https://stackoverflow.com/questions/39373217/docker-looks-something-went-wrong-in-step-looking-for-vboxmanage-exe
+
+docker-machine create --driver azure --azure-subscription-id cc786216-c843-4350-ab79-a01e805af94c azure01
+
+for userdefined paramenters 
+https://docs.docker.com/machine/drivers/azure/#options
+
+To setup the env for created docker-machine
+docker-machine env azure01
+
+To connect to the docker machine 
+eval $(docker-machine env azure01)
+
+Docker default port 2376 to change default port
+--azure-open-port
