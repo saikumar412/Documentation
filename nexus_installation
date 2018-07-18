@@ -1,0 +1,53 @@
+installing nexus in ubuntu
+
+sudo add-apt-repository ppa:webupd8team/java 
+sudo apt-get update 
+sudo apt-get install oracle-java8-set-default 
+
+java -version 
+
+sudo adduser nexus (gave password as nexus)
+su nexus 
+
+cd ~ 
+
+wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz 
+tar -xzvf latest-unix.tar.gz 
+mv nexus-3.12.1-01 nexus 
+
+vi .bashrc
+NEXUS_HOME="/home/nexus/nexus" (add this to last line)
+
+vi nexus/bin/nexus.rc 
+run_as_user="nexus" 
+exit 
+
+sudo su 
+
+cd /etc/systemd/system/ 
+
+vi nexus.service 
+
+[Unit] 
+Description=nexus service 
+After=network.target 
+
+[Service] 
+Type=forking 
+LimitNOFILE=65536 
+ExecStart=/home/nexus/nexus/bin/nexus start 
+ExecStop=/home/nexus/nexus/bin/nexus stop 
+User=nexus 
+Restart=on-abort 
+
+[Install] 
+WantedBy=multi-user.target 
+
+sudo systemctl daemon-reload 
+sudo systemctl enable nexus.service 
+sudo service nexus start 
+sudo service nexus status
+(please make sure to open ports 8081(for nexus ui) and 8123(for docker registry))
+
+Configuring docker registry
+https://www.ivankrizsan.se/2016/06/09/create-a-private-docker-registry/
