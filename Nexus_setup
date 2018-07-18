@@ -1,0 +1,82 @@
+Nexus-client configuration
+Configuring Nexus as a Docker repo
+Edit the file “/etc/docker/daemon.json” and restart the docker (sudo systemctl restart docker) 
+
+$ sudo cat /etc/docker/daemon.json
+{
+  "insecure-registries": [
+    "10.20.16.71:8082"
+  ],
+  "disable-legacy-registry": true
+}
+
+Docker login
+docker login 10.20.16.71:8083 -u admin -p admin123
+
+Docker pull
+docker pull 10.20.16.71:8082/httpd:2.4-alpine
+
+Docker Push
+docker tag your-own-image:1 10.20.16.71:8083/your-own-image:1
+docker push 10.20.16.71:8083/your-own-image:1
+
+Configuring Nexus as a Maven repo
+
+Edit the file “~/.m2/settings.xml” 
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+  <servers>
+    <server>
+      <id>nexus-snapshots</id>
+      <username>admin</username>
+      <password>admin123</password>
+    </server>
+    <server>
+      <id>nexus-releases</id>
+      <username>admin</username>
+      <password>admin123</password>
+    </server>
+  </servers>
+  <mirrors>
+    <mirror>
+      <id>central</id>
+      <name>central</name>
+      <url>http://10.20.16.71:8081/repository/maven-group/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+
+To download dependencies and Publish project to Nexus, edit this in the “pom.xml”
+<project ...>
+  ...
+  <distributionManagement>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <url>http:// 10.20.16.71:8081/repository/maven-snapshots/</url>
+    </snapshotRepository>
+    <repository>
+      <id>nexus-releases</id>
+      <url>http://10.20.16.71:8081/repository/maven-releases/</url>
+    </repository>
+  </distributionManagement>
+</project>
+
+Configuring Nexus as a NPM repo
+
+Create a “.npmrc” file at project root with
+registry=http://10.20.16.71:8081/repository/npm-group/
+_auth=YWRtaW46YWRtaW4xMjM=
+
+Note: 1. “_auth=YWRtaW46YWRtaW4xMjM= “is the base64 hash for the credentials (admin/admin123)
+	    2. for different credentials  echo -n 'myuser:mypassword' | openssl base64
+
+To publish project  to Nexus, put this in Package.json
+{
+  ...
+  "publishConfig": {
+    "registry": "http://10.20.16.71:8081/repository/npm-private/"
+  }
+}
