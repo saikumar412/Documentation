@@ -40,3 +40,6 @@ aws s3 cp jenkins-configuration.tar.gz s3://<bucket>/jenkins-backup/
 
 # Remove tar.gz after it gets uploaded to S3
 rm -rf jenkins-configuration.tar.gz
+
+https://thepracticalsysadmin.com/backing-up-jenkins-configurations-to-s3/
+
