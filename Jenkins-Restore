@@ -1,0 +1,18 @@
+1.stop the Jenkins
+service jenkins stop
+2.Install Jenkins 
+apt-get install Jenkins
+3. start the jenkins
+service Jenkins start
+4. Create admin user if asking in console (http://123.123.123.123:8080)
+5. Install necessary plugins 
+6. For backup and restoration install  Thin backup plugin
+7. Go to Manage Jenkins and then to thin backup
+8. Do the configuration for backup and save it
+Back up path on local server  is : /var/Jenkins_backup
+9.Take backup for test purpose
+copy old backed up file from S3 bucket  
+Aws s3 ls cp s3://jenkins-backup/jenkins-configuration.tar.gz
+10.tar –xvzf jenkins-configuration.tar.gz
+11. mv the untar file to format its accepting
+12.now frpm console retore using thin backup
