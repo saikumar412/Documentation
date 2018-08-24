@@ -25,3 +25,15 @@ and verify what is the access given to Jenkins in visudo. (right now it is in Ro
 jenkins    ALL=(ALL)    NOPASSWD: ALL
 
 going on we will create a separate group, in which we will add Jenkins and that group will have permissions to execute Kubectl, Docker and helm.
+
+
+Issue Reason – Docker private registry hosts are not accessible from nodes in http call.
+Solution – Need to add –insecure-registry property in daemon.json file for each node and master. Restart docker and kubelt and login to docker account.
+
+	Add –insecure-registry flag in /etc/docker/deamon.json file
+{
+  "insecure-registries" : ["55.666.77.888:5000"]
+}
+	Restart docker –> sudo service docker restart
+	Restart kubelet –> cd /etc/init.d and kubelet restart
+	Docker login 55.666.77.888:5000 –u user –pw password
