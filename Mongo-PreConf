@@ -1,0 +1,95 @@
+Please add all the below pre configuration for your Ubuntu instances, before setting up mongo db. 
+These are essential to maintain instance health and cache issues.
+
+1. set up hostname (as needed for ur instance, below are example)
+sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
+sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
+sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
+--------------------------------------------------------------------------------------
+2. increase OS limits,
+
+vim /etc/security/limits.conf
+* soft nofile 64000
+* hard nofile 64000
+* soft nproc 32000
+* hard nproc 32000
+
+vim /etc/security/limits.d/90-nproc.conf
+* soft nproc 32000
+* hard nproc 32000
+----------------------------------------------------------------------------------------
+3. Disable transperant HUGE Pages
+
+vim /etc/init.d/disable-transparent-hugepages
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          disable-transparent-hugepages
+# Required-Start:    $local_fs
+# Required-Stop:
+# X-Start-Before:    mongod mongodb-mms-automation-agent
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Disable Linux transparent huge pages
+# Description:       Disable Linux transparent huge pages, to improve
+#                    database performance.
+### END INIT INFO
+
+case $1 in
+  start)
+    if [ -d /sys/kernel/mm/transparent_hugepage ]; then
+      thp_path=/sys/kernel/mm/transparent_hugepage
+    elif [ -d /sys/kernel/mm/redhat_transparent_hugepage ]; then
+      thp_path=/sys/kernel/mm/redhat_transparent_hugepage
+    else
+      return 0
+    fi
+
+    echo 'never' > ${thp_path}/enabled
+    echo 'never' > ${thp_path}/defrag
+
+    unset thp_path
+    ;;
+esac
+
+-----------------------------------------------------------------------------------
+
+5. Make it executable
+
+sudo chmod 755 /etc/init.d/disable-transparent-hugepages
+
+6. Set to restart automatically on reboot
+
+sudo update-rc.d disable-transparent-hugepages defaults
+
+------------------------------------------------------------------------------------------
+
+7. TurnOff core dumps, (edit file)
+
+vim /etc/default/apport
+"change enabled=1 to enabled=0"
+
+------------------------------------------------------------------------------------
+
+8. Configure File system (edit file - add noatime)
+
+vim /etc/fstab
+LABEL=cloudimg-rootfs   /        ext4   defaults,noatime,discard        0 0
+
+----------------------------------------------------------------------------------------
+
+9. Read Ahead Block Size
+
+set up a cronjob to do so,
+
+                9.1 sudo crontab -e
+
+                9.2 add below job,
+                @reboot /sbin/blockdev --setra 32 /dev/xvda1
+
+Note: Make sure that your EBS volume is mounted on /dev/xvda1
+
+---------------------------------------------------------------------------------------
+
+10. Reboot the instance
+
+sudo reboot
