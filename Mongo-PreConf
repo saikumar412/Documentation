@@ -2,9 +2,9 @@ Please add all the below pre configuration for your Ubuntu instances, before set
 These are essential to maintain instance health and cache issues.
 
 1. set up hostname (as needed for ur instance, below are example)
-sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
-sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
-sudo bash -c 'echo devdb1.concierto.in > /etc/hostname && hostname -F /etc/hostname'
+sudo bash -c 'echo devdb1.test > /etc/hostname && hostname -F /etc/hostname'
+sudo bash -c 'echo devdb1.test > /etc/hostname && hostname -F /etc/hostname'
+sudo bash -c 'echo devdb1.test > /etc/hostname && hostname -F /etc/hostname'
 --------------------------------------------------------------------------------------
 2. increase OS limits,
 
