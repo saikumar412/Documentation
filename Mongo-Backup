@@ -1,0 +1,51 @@
+sudo mongodump --host mprimary --port 27017 --out /home/backupNew2/`date +"%m-%d-%y"`
+sudo mongodump --host mprimary --port 27017 /home/Dump
+
+sudo mongorestore --host mprimary --port 27017 /home/dbDump
+
+ sudo mongorestore --host sdb1.test.in --port 27017 /home/ubuntu/dump/01-11-11
+================================================================================
+db.createUser(
+  {
+    user: "admin",
+    pwd: "password",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" }, { role: "dbAdminAnyDatabase", db: "admin" }, { role: "readWriteAnyDatabase", db: "admin" }, { role: "clusterManager", db: "admin" }, { role: "clusterMonitor", db: "admin" }, { role: "backup", db: "admin" }, { role: "dbOwner", db: "admin" }, { role: "dbOwner", db: "admin" },{ role: "enableSharding", db: "admin" }, { role: "readWrite", db: "admin" }]
+  }
+)
+
+$ db.createUser(
+  {
+    user: "admin",
+    pwd: "password",
+    roles: [ { role: "root", db: "admin" }, { role: "readWrite", db: "test" } ]
+  })
+
+mongo --host db3.test.in --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --host db4.test.in --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+
+mongo --host localhost --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --host localhost --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+
+
+rs.add("db4.test.in:27017")
+
+
+db.shutdownServer()
+
+mongo --host db1.test.in --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --host db2.test.in --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --host db3.test.in --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+mongo --host localhost --port 27017 -u "admin" -p "password" --authenticationDatabase "admin"
+
+
+mongo --host devdb1.test.in --port 13000 -u "admin" -p "password" --authenticationDatabase "admin"
+
+mongod --config /etc/mongod.conf
+
+
+mongod --fork --logpath /var/log/mongodb/mongod.log --config /etc/mongod.conf
+
+chmod 700 key
+
+db.getMongo().setSlaveOk()
