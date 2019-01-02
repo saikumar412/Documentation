@@ -7,9 +7,7 @@ Our ELK stack setup has four main components:
 •	Kibana: Web interface for searching and visualizing logs, which will be proxied through Nginx
 •	Filebeat: Installed on client servers that will send their logs to Logstash, Filebeat serves as a log shipping agent that utilizes the lumberjack networking protocol to communicate with Logstash
  
-
-![alt text](https://github.com/saikumar412/Documentation/blob/master/ELK/ELK.PNG)
-
+ ![alt text](https://github.com/saikumar412/Documentation/master/ELK/ELK.PNG)
 
 Prerequisites
 ------------------
