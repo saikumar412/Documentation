@@ -1,0 +1,383 @@
+ELK installation
+Introduction
+---------------------
+Our ELK stack setup has four main components:
+•	Logstash: The server component of Logstash that processes incoming logs
+•	Elasticsearch: Stores all of the logs
+•	Kibana: Web interface for searching and visualizing logs, which will be proxied through Nginx
+•	Filebeat: Installed on client servers that will send their logs to Logstash, Filebeat serves as a log shipping agent that utilizes the lumberjack networking protocol to communicate with Logstash
+ 
+
+
+
+
+Prerequisites
+------------------
+The amount of CPU, RAM, and storage that your ELK Server will require depends on the volume of logs .For general use we can use the below configuration
+•	OS: Ubuntu 14.04
+•	RAM: 4GB
+•	CPU: 2
+In addition to your ELK Server, you will want to have a few other servers that you will gather logs from.
+Install Java 8
+sudo add-apt-repository -y ppa:webupd8team/java
+sudo apt-get update
+sudo apt-get -y install oracle-java8-installer
+Now that Java 8 is installed, 
+Install ElasticSearch.
+
+Run the following command to import the Elasticsearch public GPG key into apt:
+•	wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+
+Create the Elasticsearch source list:
+echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
+
+sudo apt-get update
+
+sudo apt-get -y install elasticsearch
+
+Elasticsearch is now installed. Let's edit the configuration:
+•	sudo vi /etc/elasticsearch/elasticsearch.yml
+
+
+You will want to restrict outside access to your Elasticsearch instance (port 9200), so outsiders can't read your data or shutdown your Elasticsearch cluster through the HTTP API. Find the line that specifies network.host, uncomment it, and replace its value with "localhost" so it looks like this:
+network.host: localhost
+Save and exit elasticsearch.yml.
+
+Now start Elasticsearch:
+•	sudo service elasticsearch restart
+
+Then run the following command to start Elasticsearch on boot up:
+•	sudo update-rc.d elasticsearch defaults 95 10
+
+Install Kibana
+
+echo "deb http://packages.elastic.co/kibana/4.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/kibana-4.5.x.list
+
+sudo apt-get update
+
+sudo apt-get -y install kibana
+
+sudo vi /opt/kibana/config/kibana.yml
+
+In the Kibana configuration file, find the line that specifies server.host, and replace the IP address ("0.0.0.0" by default) with "localhost":
+kibana.yml excerpt (updated)
+server.host: "localhost"
+
+
+Now enable the Kibana service, and start it:
+•	sudo update-rc.d kibana defaults 96 9
+•	
+•	sudo service kibana start
+Install Nginx
+
+Use apt to install Nginx and Apache2-utils:
+•	sudo apt-get install nginx apache2-utils
+Use htpasswd to create an admin user, called "kibanaadmin" (you should use another name), that can access the Kibana web interface:
+•	sudo htpasswd -c /etc/nginx/htpasswd.users kibanaadmin
+
+Now open the Nginx default server block .
+•	sudo vi /etc/nginx/sites-available/default
+Delete the file's contents, and paste the following code block into the file. Be sure to update the server_name to match your server's name:
+
+/etc/nginx/sites-available/default
+•	server {
+•	
+•	    listen 80;
+•	
+•	
+•	
+•	    server_name example.com;
+•	
+•	
+•	
+•	    auth_basic "Restricted Access";
+•	
+•	    auth_basic_user_file /etc/nginx/htpasswd.users;
+•	
+•	
+•	
+•	    location / {
+•	
+•	        proxy_pass http://localhost:5601;
+•	
+•	        proxy_http_version 1.1;
+•	
+•	        proxy_set_header Upgrade $http_upgrade;
+•	
+•	        proxy_set_header Connection 'upgrade';
+•	
+•	        proxy_set_header Host $host;
+•	
+•	        proxy_cache_bypass $http_upgrade;        
+•	
+•	    }
+•	
+•	}
+Save and exit. This configures Nginx to direct your server's HTTP traffic to the Kibana application, which is listening on localhost:5601. Also, Nginx will use the htpasswd.users file, that we created earlier, and require basic authentication.
+
+sudo service nginx restart
+
+Install Logstash
+
+echo 'deb http://packages.elastic.co/logstash/2.2/debian stable main' | sudo tee /etc/apt/sources.list.d/logstash-2.2.x.list
+sudo apt-get update
+sudo apt-get install logstash
+Generate SSL Certificates(Optional)
+--------------------------------------------------
+If we want to use ssl/tls cert then only follow steps otherwise leave it 
+Since we are going to use Filebeat to ship logs from our Client Servers to our ELK Server, we need to create an SSL certificate and key pair. The certificate is used by Filebeat to verify the identity of ELK Server. Create the directories that will store the certificate and private key with the following commands:
+•	sudo mkdir -p /etc/pki/tls/certs
+•	
+•	sudo mkdir /etc/pki/tls/private
+•	
+Now you have two options for generating your SSL certificates. If you have a DNS setup that will allow your client servers to resolve the IP address of the ELK Server, use Option 2. Otherwise, Option 1 will allow you to use IP addresses.
+Option 1: IP Address
+If you don't have a DNS setup—that would allow your servers, that you will gather logs from, to resolve the IP address of your ELK Server—you will have to add your ELK Server's private IP address to the subjectAltName (SAN) field of the SSL certificate that we are about to generate. To do so, open the OpenSSL configuration file:
+•	sudo vi /etc/ssl/openssl.cnf
+•	
+Find the [ v3_ca ] section in the file, and add this line under it (substituting in the ELK Server's private IP address):
+openssl.cnf excerpt (updated)
+subjectAltName = IP: ELK_server_private_IP
+Save and exit.
+Now generate the SSL certificate and private key in the appropriate locations (/etc/pki/tls/), with the following commands:
+•	cd /etc/pki/tls
+•	
+•	sudo openssl req -config /etc/ssl/openssl.cnf -x509 -days 3650 -batch -nodes -newkey rsa:2048 -keyout private/logstash-forwarder.key -out certs/logstash-forwarder.crt
+The logstash-forwarder.crt file will be copied to all of the servers that will send logs to Logstash 
+
+
+Configure Logstash
+Config file resides in /etc/logstash/conf.d
+create a configuration file called 02-beats-input.conf and set up our "filebeat" input:
+•	sudo vi /etc/logstash/conf.d/02-beats-input.conf
+
+Insert the following input configuration:
+02-beats-input.conf
+•	input {
+•	
+•	  beats {
+•	
+•	    port => 5044
+•	
+•	    ssl => true
+•	
+•	    ssl_certificate => "/etc/pki/tls/certs/logstash-forwarder.crt"
+•	
+•	    ssl_key => "/etc/pki/tls/private/logstash-forwarder.key"
+•	
+•	  }
+•	
+•	}
+
+This specifies a beats input that will listen on tcp port 5044 .
+
+create a configuration file called 10-syslog-filter.conf, where we will add a filter for syslog messages:
+sudo vi /etc/logstash/conf.d/10-syslog-filter.conf
+Insert the following syslog filter configuration:
+•	filter {
+•	
+•	  if [type] == "syslog" {
+•	
+•	    grok {
+•	
+•	      match => { "message" => "%{SYSLOGTIMESTAMP:syslog_timestamp} %{SYSLOGHOST:syslog_hostname} %{DATA:syslog_program}(?:\[%{POSINT:syslog_pid}\])?: %{GREEDYDATA:syslog_message}" }
+•	
+•	      add_field => [ "received_at", "%{@timestamp}" ]
+•	
+•	      add_field => [ "received_from", "%{host}" ]
+•	
+•	    }
+•	
+•	    syslog_pri { }
+•	
+•	    date {
+•	
+•	      match => [ "syslog_timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+•	
+•	    }
+•	
+•	  }
+•	
+•	}
+
+
+create a configuration file called 30-elasticsearch-output.conf:
+
+Insert the following output configuration:
+•	output {
+•	
+•	  elasticsearch {
+•	
+•	    hosts => ["localhost:9200"]
+•	
+•	    sniffing => true
+•	
+•	    manage_template => false
+•	
+•	    index => "%{[@metadata][beat]}-%{+YYYY.MM.dd}"
+•	
+•	    document_type => "%{[@metadata][type]}"
+•	
+•	  }
+•	
+•	}
+
+This output basically configures Logstash to store the beats data in Elasticsearch which is running at localhost:9200, in an index named after the beat used (filebeat, in our case)
+Test your Logstash configuration with this command:
+•	sudo service logstash configtest
+
+It should display ‘Configuration OK ‘
+
+Restart Logstash, and enable it, to put our configuration changes into effect:
+•	sudo service logstash restart
+•	
+•	sudo update-rc.d logstash defaults 96 9
+Load Kibana Dashboards
+First, download the sample dashboards archive to your home directory:
+•	cd ~
+•	curl -L -O https://download.elastic.co/beats/dashboards/beats-dashboards-1.1.0.zip
+sudo apt-get -y install unzip
+unzip beats-dashboards-*.zip
+•	cd beats-dashboards-*
+•	
+•	./load.sh
+
+These are the index patterns that we just loaded:
+•	[packetbeat-]YYYY.MM.DD
+•	[topbeat-]YYYY.MM.DD
+•	[filebeat-]YYYY.MM.DD
+•	[winlogbeat-]YYYY.MM.DD
+Load Filebeat Index Template in Elasticsearch
+•	cd ~
+•	
+•	curl -O https://gist.githubusercontent.com/thisismitch/3429023e8438cc25b86c/raw/d8c479e2a1adcea8b1fe86570e42abab0f10f364/filebeat-index-template.json
+
+curl -XPUT 'http://localhost:9200/_template/filebeat?pretty' -d@filebeat-index-template.json
+If the template loaded properly, you should see a message like this:
+Output:
+{
+  "acknowledged" : true
+}
+
+Set Up Filebeat (Add Client Servers)
+Install Filebeat Package
+echo "deb https://packages.elastic.co/beats/apt stable main" |  sudo tee -a /etc/apt/sources.list.d/beats.list
+wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add –
+Then install the Filebeat package:
+•	sudo apt-get update
+•	sudo apt-get install filebeat
+
+Configure Filebeat
+sudo vi /etc/filebeat/filebeat.yml
+prospectors section-where you can define prospectors that specify which log files should be shipped and how they should be handled. Each prospector is indicated by the - character.
+Put - /var/log/syslog
+
+document_type: syslog
+
+logstash:
+    # The Logstash hosts
+    hosts: ["ELK_server_private_IP:5044"]
+  bulk_max_size: 1024
+
+sudo service filebeat restart
+sudo update-rc.d filebeat defaults 95 10
+
+
+we can verify , if log is coming to elk server
+•	curl -XGET 'http://localhost:9200/filebeat-*/_search?pretty'
+You should see a bunch of output that looks like this:
+{
+      "_index" : "filebeat-2016.01.29",
+      "_type" : "log",
+      "_id" : "AVKO98yuaHvsHQLa53HE",
+      "_score" : 1.0,
+      "_source":{"message":"Feb  3 14:34:00 rails sshd[963]: Server listening on :: port 22.","@version":"1","@timestamp":"2016-01-29T19:59:09.145Z","beat":{"hostname":"topbeat-u-03","name":"topbeat-u-03"},"count":1,"fields":null,"input_type":"log","offset":70,"source":"/var/log/auth.log","type":"log","host":"topbeat-u-03"}
+    }
+
+Connect to Kibana
+
+Open public ip of the elk server
+It will load kibana dashboard
+
+
+Configure filebeat for pod logs on client server
+
+Set env variable as 
+
+LOGSTASH_HOSTS=172.31.17.58:5044
+LOG_LEVEL="info"
+FILEBEAT_HOST="172.31.27.86"
+CLUSTER_NAME="us-west-2.k8.concierto.testenv.com"
+
+Make new file in /etc/filebeat
+
+As filebeatnew
+
+And put the below configuration
+
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: kube-system
+  labels:
+    app: filebeat
+spec:
+  template:
+    metadata:
+      labels:
+        app: filebeat
+      name: filebeat
+    spec:
+      containers:
+      - name: filebeat
+        image: apsops/filebeat-kubernetes:v0.4
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+        env:
+          - name: LOGSTASH_HOSTS
+            value: 11.22.333.444:5044
+          - name: LOG_LEVEL
+            value: info
+          - name: CLUSTER_NAME
+            value: us-west-2.testenv.com
+          - name: FILEBEAT_HOST
+            valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log/containers
+        - name: varlogpods
+          mountPath: /var/log/pods
+          readOnly: true
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 60
+      tolerations:
+tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log/containers
+      - name: varlogpods
+        hostPath:
+          path: /var/log/pods
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+
+Specify the yellow marked field according to your need
+
+
+Now run this command
+kubectl create -f filebeatnew.yaml
+
+
+Refrence
+https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-ubuntu-14-0
