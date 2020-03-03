@@ -61,3 +61,90 @@
 ### Setting up SSM in multi account configuration:
 
 AWS Systems Manager Automations can be run across multiple AWS Regions and AWS accounts or AWS Organizational Units (OUs) from an Automation management account. Running Automations in multiple Regions and accounts or OUs reduces the time required to administer your AWS resources while enhancing the security of your computing environment.
+
+ ![alt text](https://github.com/saikumar412/Documentation/blob/master/AWS%20SSM/automation-multi-region-and-multi-account.png)
+ 
+#### Centralized Account(Prod Account):
+IAM role on controlling account(Prod account) : 
+1. Create a role named  AWS-SystemsManager-AutomationAdministrationRole. This role gives the user permission to run Automation workflows in multiple AWS accounts and OUs.
+2. Download and unzip the [AWS-SystemManager-AutomationAdministrationRole.zip folder](https://docs.aws.amazon.com/systems-manager/latest/userguide/samples/AWS-SystemManager-AutomationAdministrationRole.zip). This folder includes AWS-SystemManager-AutomationAdministrationRole.json AWS CloudFormation template file.
+3. Open the AWS CloudFormation console at [https://console.aws.amazon.com/cloudformation.](https://console.aws.amazon.com/cloudformation)
+4. Choose Create Stack.
+5. In the Choose a template section, choose Upload a template to Amazon S3.
+6. Choose Browse, and then choose the AWS-SystemManager-AutomationAdministrationRole.json AWS CloudFormation template file.
+7. Choose Next.
+8. On the Specify Details page, in the Stack Name field, enter a name.
+9. Choose Next.
+10. On the Options page, enter values for any options you want to use. Choose Next.
+11. On the Review page, scroll down and choose the I acknowledge that AWS CloudFormation might create IAM resources option.
+12. Choose Create.
+
+#### Target accounts:
+
+IAM role to be used by ec2 instances(target instances):
+
+1. Create the role named AWS-SystemsManager-AutomationExecutionRole. This role gives the user permission to run Automation workflows.
+2. Download and unzip the [AWS-SystemsManager-AutomationExecutionRole.zip folder.](https://docs.aws.amazon.com/systems-manager/latest/userguide/samples/AWS-SystemsManager-AutomationExecutionRole.zip) This folder includes the AWS-SystemsManager-AutomationExecutionRole.json AWS CloudFormation template file.
+3. Open the AWS CloudFormation console at [https://console.aws.amazon.com/cloudformation](https://console.aws.amazon.com/cloudformation)
+4. Choose Create Stack.
+5. In the Choose a template section, choose Upload a template to Amazon S3.
+6. Choose Browse, and then choose the AWS-SystemsManager-AutomationExecutionRole.json AWS CloudFormation template file.
+7. Choose Next.
+8. On the Specify Details page, in the Stack Name field, enter a name.
+9. In the Parameters section, in the MasterAccountID(Shared services Account) field, enter the ID for the account that you want to use to run multi-Region and multi-account Automations.
+10. Choose Next.
+11. On the Options page, enter values for any options you want to use. Choose Next.
+12. On the Review page, scroll down and choose the I acknowledge that AWS CloudFormation might create IAM resources option.
+13. Choose Create.
+
+### Run an automation workflow in multiple regions & accounts:
+
+1. Open the AWS Systems Manager console at [https://console.aws.amazon.com/systems-manager/](https://console.aws.amazon.com/systems-manager/)
+
+2. In the navigation pane, choose Automation, and then choose Execute automation.
+
+3. In the Automation document list, choose a document. Choose one or more options in the Document categories pane to filter SSM documents according to their purpose. To view a document that you own, choose the Owned by me tab. To view a document that is shared with your account, choose the Shared with me tab. To view all documents, choose the All documents tab.                
+**Note:** You can view information about a document by choosing the document name.          
+4. In the Document details section, verify that Document version is set to the version that you want to run. The system includes the following version options:            
+   1. Default version at runtime: Choose this option if the Automation document is updated periodically and a new default version is assigned.
+   2. Latest version at runtime: Choose this option if the Automation document is updated periodically, and you want to run the version that was most recently updated.
+   3. 1 (Default): Choose this option to run the first version of the document, which is the default.
+5. Choose Next.
+6. On the Execute automation document page, choose Multi-account and Region.
+7. In the Target accounts and Regions section, use the Accounts and organizational (OUs) field to specify the different AWS accounts or AWS Organizational Units (OUs) where you want to run the Automation. Separate multiple accounts or OUs with a comma.
+8. Use the AWS Regions list to choose one or more Regions where you want to run the Automation.
+9. Use the Multi-Region and account rate control options to restrict the Automation execution to a limited number of accounts running in a limited number of Regions. These options don't restrict the number of AWS resources that can run the Automations.      
+  ...a. In the Location (account-Region pair) concurrency section, choose an option to restrict the number of Automation workflows that can run in multiple accounts and Regions at the same time. For example, if you choose to run an Automation in five (5) AWS accounts, which are located in four (4) AWS Regions, then Systems Manager runs Automations in a total of 20 account-Region pairs. You can use this option to specify an absolute number, such as 2, so that the Automation only runs in two account-Region pairs at the same time. Or you can specify a percentage of the account-Region pairs that can run at the same time. For example, with 20 account-Region pairs, if you specify 20%, then the Automation simultaneously runs in a maximum of five (5) account-Region pairs.          
+         ..i. Choose targets to enter an absolute number of account-Region pairs that can run the Automation workflow simultaneously.       
+         ..ii. Choose percent to enter a percentage of the total number of account-Region pairs that can run the Automation workflow simultaneously.                   
+  ..b. In the Error threshold section, choose an option:               
+     ..i. Choose errors to enter an absolute number of errors allowed before Automation stops sending the workflow to other resources.         
+     ..ii. Choose percent to enter a percentage of errors allowed before Automation stops sending the workflow to other resources.      
+     
+10. In the Targets section, choose how you want to target the AWS Resources where you want to run the Automation. These options are required.  
+   a. Use the Parameter list to choose a parameter. The items in the Parameter list are determined by the parameters in the Automation document that you selected at the start of this procedure. By choosing a parameter you define the type of resource on which the Automation workflow runs.   
+   b. Use the Targets list to choose how you want to target resources.  
+     - If you chose to target resources by using parameter values, then enter the parameter value for the parameter you chose in the Input parameters section.   
+     - If you chose to target resources by using AWS Resource Groups, then choose the name of the group from the Resource Group list.
+     - If you chose to target resources by using tags, then enter the tag key and (optionally) the tag value in the fields provided. Choose Add.
+     - If you want to run an Automation playbook on all instances in the current AWS account and Region, then choose All instances.
+
+11. In the Input parameters section, specify the required inputs. Optionally, you can choose an IAM service role from the AutomationAssumeRole list.
+
+**Note:** You may not need to choose some of the options in the Input parameters section. This is because you targeted resources in multiple Regions and accounts by using tags or a resource group. For example, if you chose the AWS-RestartEC2Instance document, then you don't need to specify or choose instance IDs in the Input parameters section. The Automation execution locates the instances to restart by using the tags you specified.
+
+12. Use the options in the Rate control section to restrict the number of AWS resources that can run the Automation within each account-Region pair.
+
+In the Concurrency section, choose an option:
+
+  - Choose targets to enter an absolute number of targets that can run the Automation workflow simultaneously.
+
+  - Choose percentage to enter a percentage of the target set that can run the Automation workflow simultaneously.
+
+13. In the Error threshold section, choose an option:
+
+  - Choose errors to enter an absolute number of errors allowed before Automation stops sending the workflow to other resources.
+
+  - Choose percentage to enter a percentage of errors allowed before Automation stops sending the workflow to other resources.
+
+14. Choose Execute.
